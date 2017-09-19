@@ -589,7 +589,7 @@ fi
 
 # Process
 if [ $PROCESS_ALIVE -eq 1 -a -n "$PROCESS_NAME" ]; then
-    process_count=`ps awux | grep -v grep | grep $PROCESS_NAME | wc -l`
+    process_count=`ps awux | grep -v grep | grep -v $0 | grep -w $PROCESS_NAME | wc -l`
     if [ $VERBOSE -eq 1 ]; then
         echo "process_alive:$process_count $PROCESS_NAME"
     fi
