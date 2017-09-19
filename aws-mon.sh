@@ -71,6 +71,8 @@ usage()
     printf "    %-28s %s\n" "--disk-space-util" "Reports disk space utilization in percentages."
     printf "    %-28s %s\n" "--disk-space-used" "Reports allocated disk space in gigabytes."
     printf "    %-28s %s\n" "--disk-space-avail" "Reports available disk space in gigabytes."
+    printf "    %-28s %s\n" "--process-name NAME" "Selects the process by the name on which to report."
+    printf "    %-28s %s\n" "--process-alive" "Reports the count of alive processes by given name."
     printf "    %-28s %s\n" "--all-items" "Reports all items."
 }
 
@@ -113,6 +115,8 @@ DISK_SPACE_UNIT_DIV=1
 DISK_SPACE_UTIL=0
 DISK_SPACE_USED=0
 DISK_SPACE_AVAIL=0
+PROCESS_NAME=""
+PROCESS_ALIVE=0
 
 eval set -- "$ARGS"
 while true; do
@@ -218,6 +222,14 @@ while true; do
         --disk-space-avail)
             DISK_SPACE_AVAIL=1
             ;;
+        # Process
+        --process-count)
+            shift
+            PROCESS_NAME=$1
+        --disk-space-util)
+            PROCESS_ALIVE=1
+            ;;
+        # All
         --all-items)
             LOAD_AVE1=1
             LOAD_AVE5=1
@@ -571,5 +583,18 @@ if [ $DISK_SPACE_AVAIL -eq 1 -a -n "$DISK_PATH" ]; then
     fi
     if [ $VERIFY -eq 0 ]; then
         aws cloudwatch put-metric-data --metric-name "DiskSpaceAvailable:$DISK_PATH" --value "$disk_avail" --unit "$DISK_SPACE_UNITS" $CLOUDWATCH_OPTS
+    fi
+fi
+
+# Process
+
+
+if [ $PROCESS_ALIVE -eq 1 -a -n "$PROCESS_NAME" -a $disk_total -gt 0 ]; then
+    process_count=`ps awux | grep -v grep | grep $PROCESS_NAME | wc -l`
+    if [ $VERBOSE -eq 1 ]; then
+        echo "process_alive:$process_count $PROCESS_NAME"
+    fi
+    if [ $VERIFY -eq 0 ]; then
+        aws cloudwatch put-metric-data --metric-name "ProcessAlive:$PROCESS_NAME" --value "$process_count" --unit "Count" $CLOUDWATCH_OPTS
     fi
 fi
