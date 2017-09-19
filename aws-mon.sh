@@ -588,7 +588,7 @@ if [ $DISK_SPACE_AVAIL -eq 1 -a -n "$DISK_PATH" ]; then
 fi
 
 # Process
-if [ $PROCESS_ALIVE -eq 1 -a -n "$PROCESS_NAME"]; then
+if [ $PROCESS_ALIVE -eq 1 -a -n "$PROCESS_NAME" ]; then
     process_count=`ps awux | grep -v grep | grep $PROCESS_NAME | wc -l`
     if [ $VERBOSE -eq 1 ]; then
         echo "process_alive:$process_count $PROCESS_NAME"
