@@ -326,7 +326,7 @@ fi
 
 # Avoid a storm of calls at the beginning of a minute
 if [ $FROM_CRON -eq 1 ]; then
-    sleep $(((RANDOM%20) + 1))
+    sleep $(((RANDOM%10) + 1))
 fi
 
 # CloudWatch Command Line Interface Option
