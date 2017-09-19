@@ -223,10 +223,11 @@ while true; do
             DISK_SPACE_AVAIL=1
             ;;
         # Process
-        --process-count)
+        --process-name)
             shift
             PROCESS_NAME=$1
-        --disk-space-util)
+            ;;
+        --process-alive)
             PROCESS_ALIVE=1
             ;;
         # All
