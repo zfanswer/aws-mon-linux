@@ -71,6 +71,7 @@ usage()
     printf "    %-28s %s\n" "--disk-space-util" "Reports disk space utilization in percentages."
     printf "    %-28s %s\n" "--disk-space-used" "Reports allocated disk space in gigabytes."
     printf "    %-28s %s\n" "--disk-space-avail" "Reports available disk space in gigabytes."
+    printf "    %-28s %s\n" "--all-disk-space-util" "Reports disk space utilization in percentages for all disks."
     printf "    %-28s %s\n" "--process-name NAME" "Selects the process by the name on which to report."
     printf "    %-28s %s\n" "--process-alive" "Reports the count of alive processes by given name."
     printf "    %-28s %s\n" "--all-items" "Reports all items."
@@ -81,7 +82,7 @@ usage()
 # Options
 ########################################
 SHORT_OPTS="h"
-LONG_OPTS="help,version,verify,verbose,debug,from-cron,profile:,load-ave1,load-ave5,load-ave15,interrupt,context-switch,cpu-us,cpu-sy,cpu-id,cpu-wa,cpu-st,memory-units:,mem-used-incl-cache-buff,mem-util,mem-used,mem-avail,swap-util,swap-used,swap-avail,disk-path:,disk-space-units:,disk-space-util,disk-space-used,disk-space-avail,process-alive,process-name:,all-items"
+LONG_OPTS="help,version,verify,verbose,debug,from-cron,profile:,load-ave1,load-ave5,load-ave15,interrupt,context-switch,cpu-us,cpu-sy,cpu-id,cpu-wa,cpu-st,memory-units:,mem-used-incl-cache-buff,mem-util,mem-used,mem-avail,swap-util,swap-used,swap-avail,disk-path:,disk-space-units:,disk-space-util,disk-space-used,disk-space-avail,all-disk-space-util,process-alive,process-name:,all-items"
 
 ARGS=$(getopt -s bash --options $SHORT_OPTS --longoptions $LONG_OPTS --name $SCRIPT_NAME -- "$@" )
 
@@ -115,6 +116,7 @@ DISK_SPACE_UNIT_DIV=1
 DISK_SPACE_UTIL=0
 DISK_SPACE_USED=0
 DISK_SPACE_AVAIL=0
+ALL_DISK_SPACE_UTIL=0
 PROCESS_NAME=""
 PROCESS_ALIVE=0
 
@@ -550,6 +552,8 @@ disk_used=`echo "$df_output" | tail -1 | tr -s ' ' | cut -d ' ' -f 3`
 disk_used=`expr $disk_used \* $KILO`
 disk_avail=`echo "$df_output" | tail -1 | tr -s ' ' | cut -d ' ' -f 4`
 disk_avail=`expr $disk_avail \* $KILO`
+all_disks=`echo "$disks_output" | grep "/dev/xv" | tr -s ' ' | cut -d ' ' -f 1`
+all_disks=($all_disks)
 
 if [ $DEBUG -eq 1 ]; then
     echo "DiskTotal:$disk_total"
@@ -585,6 +589,24 @@ if [ $DISK_SPACE_AVAIL -eq 1 -a -n "$DISK_PATH" ]; then
     if [ $VERIFY -eq 0 ]; then
         aws cloudwatch put-metric-data --metric-name "DiskSpaceAvailable:$DISK_PATH" --value "$disk_avail" --unit "$DISK_SPACE_UNITS" $CLOUDWATCH_OPTS
     fi
+fi
+
+if [ $ALL_DISK_SPACE_UTIL -eq 1  ]; then
+  for i in "${!all_disks[@]}"
+  do
+    df_output_all=`/bin/df -k -l -P ${all_disks[$i]}`
+    dsk_total=`echo "$df_output_all" | tail -1 | tr -s ' ' | cut -d ' ' -f 2`
+    dsk_total=`expr $dsk_total \* $KILO`
+    dsk_used=`echo "$df_output_all" | tail -1 | tr -s ' ' | cut -d ' ' -f 3`
+    dsk_used=`expr $dsk_used \* $KILO`
+    dsk_ut=`expr 100 \* $dsk_used / $dsk_total`
+    if [ $VERBOSE -eq 1 ]; then
+        echo "Disk $i ${all_disks[$i]} Utilization:$dsk_ut"
+    fi
+    if [ $VERIFY -eq 0 ]; then
+        aws cloudwatch put-metric-data --metric-name "DiskSpaceUtilization:${all_disks[$i]}" --value "$dsk_ut" --unit "Percent" $CLOUDWATCH_OPTS
+    fi
+  done
 fi
 
 # Process
